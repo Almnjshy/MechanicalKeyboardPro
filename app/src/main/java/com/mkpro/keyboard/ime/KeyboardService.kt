@@ -89,8 +89,9 @@ class KeyboardService : InputMethodService() {
         lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     }
 
-    override fun onFinishInput(finishingInput: Boolean) {
-        super.onFinishInput(finishingInput)
+    // onFinishInput() takes NO arguments in InputMethodService
+    override fun onFinishInput() {
+        super.onFinishInput()
         lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
     }
 
