@@ -44,6 +44,12 @@ class KeyboardService : InputMethodService() {
         lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
     }
 
+    override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(attribute, restarting)
+        // Ensure lifecycle moves through STARTED before RESUMED
+        lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_START)
+    }
+
     override fun onCreateInputView(): View {
         val composeView = ComposeView(this)
         composeView.setViewTreeLifecycleOwner(lifecycleOwner)
@@ -83,6 +89,11 @@ class KeyboardService : InputMethodService() {
         lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     }
 
+    override fun onFinishInput(finishingInput: Boolean) {
+        super.onFinishInput(finishingInput)
+        lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+    }
+
     override fun onDestroy() {
         lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         super.onDestroy()
@@ -94,6 +105,16 @@ class KeyboardService : InputMethodService() {
     // --- Key dispatch -------------------------------------------------
 
     private fun onKeyPressed(key: KeyModel) {
+        // CRITICAL: Ensure we have a valid input connection before processing
+        val ic = currentInputConnection
+        if (ic == null) {
+            // If no input connection, only handle local state changes
+            if (key.modifierBit != null) {
+                heldModifierKeyIds = if (key.id in heldModifierKeyIds) heldModifierKeyIds - key.id else heldModifierKeyIds + key.id
+            }
+            return
+        }
+
         // Modifier keys (Shift/Ctrl/Alt/Win) toggle sticky state; they never
         // produce input on their own.
         if (key.modifierBit != null) {
@@ -117,18 +138,21 @@ class KeyboardService : InputMethodService() {
 
     /** Applies caps-lock/one-shot-shift casing, then clears any one-shot Shift. */
     private fun commitLetter(text: String) {
+        val ic = currentInputConnection ?: return
         val shiftHeld = heldModifierKeyIds.any { it == "shift_l" || it == "shift_r" }
         val shouldUppercase = capsLockOn xor shiftHeld
-        currentInputConnection?.commitText(if (shouldUppercase) text.uppercase() else text.lowercase(), 1)
+        ic.commitText(if (shouldUppercase) text.uppercase() else text.lowercase(), 1)
         if (shiftHeld) heldModifierKeyIds = heldModifierKeyIds - "shift_l" - "shift_r"
     }
 
     private fun dispatchStandardKey(key: KeyModel) {
+        val ic = currentInputConnection ?: return
+
         when (key.id) {
-            "space" -> { currentInputConnection?.commitText(" ", 1); return }
-            "enter" -> { currentInputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)); return }
-            "backspace" -> { currentInputConnection?.deleteSurroundingText(1, 0); return }
-            "tab" -> { currentInputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_TAB)); return }
+            "space" -> { ic.commitText(" ", 1); return }
+            "enter" -> { ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)); return }
+            "backspace" -> { ic.deleteSurroundingText(1, 0); return }
+            "tab" -> { ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_TAB)); return }
             "esc" -> return // no-op on phone typing; meaningful only in PC-connected mode
         }
 
@@ -147,7 +171,7 @@ class KeyboardService : InputMethodService() {
             if (nonShiftMask and (HidModifiers.LEFT_CTRL or HidModifiers.RIGHT_CTRL) != 0) metaState = metaState or KeyEvent.META_CTRL_ON
             if (nonShiftMask and (HidModifiers.LEFT_ALT or HidModifiers.RIGHT_ALT) != 0) metaState = metaState or KeyEvent.META_ALT_ON
             if (nonShiftMask and (HidModifiers.LEFT_GUI or HidModifiers.RIGHT_GUI) != 0) metaState = metaState or KeyEvent.META_META_ON
-            currentInputConnection?.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_DOWN, letterOrDigit, 0, metaState))
+            ic.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_DOWN, letterOrDigit, 0, metaState))
             heldModifierKeyIds = emptySet() // combo consumed, including any Shift held alongside it
             return
         }
@@ -155,18 +179,19 @@ class KeyboardService : InputMethodService() {
         if (key.label.length == 1 && key.label.first().isLetter()) {
             commitLetter(key.label)
         } else if (key.label.length == 1) {
-            currentInputConnection?.commitText(key.label, 1)
+            ic.commitText(key.label, 1)
         }
     }
 
     private fun sendAndroidKeyEvent(keyCodeName: String?, modifierMask: Int) {
+        val ic = currentInputConnection ?: return
         val code = keyCodeName?.let { runCatching { KeyEvent::class.java.getField(it).getInt(null) }.getOrNull() } ?: return
         var metaState = 0
         if (modifierMask and (HidModifiers.LEFT_CTRL or HidModifiers.RIGHT_CTRL) != 0) metaState = metaState or KeyEvent.META_CTRL_ON
         if (modifierMask and (HidModifiers.LEFT_ALT or HidModifiers.RIGHT_ALT) != 0) metaState = metaState or KeyEvent.META_ALT_ON
         if (modifierMask and (HidModifiers.LEFT_GUI or HidModifiers.RIGHT_GUI) != 0) metaState = metaState or KeyEvent.META_META_ON
-        currentInputConnection?.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_DOWN, code, 0, metaState))
-        currentInputConnection?.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_UP, code, 0, metaState))
+        ic.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_DOWN, code, 0, metaState))
+        ic.sendKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_UP, code, 0, metaState))
     }
 
     /** Reads the currently-held modifier bits, then clears them (Shift/Ctrl/Alt/Win are all one-shot here). */
