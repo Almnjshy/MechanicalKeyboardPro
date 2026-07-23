@@ -41,7 +41,7 @@ jobs:
             echo "⚠️ gradlew not found, will use system gradle"
           fi
 
-      # 5. Run build with wrapper or system gradle
+      # 5. Run build - DEBUG ONLY (no minification, works for testing)
       - name: Build Debug APK
         run: |
           if [ "${{ steps.check_wrapper.outputs.exists }}" == "true" ]; then
@@ -59,14 +59,15 @@ jobs:
             gradle testDebugUnitTest
           fi
 
-      # 7. Upload debug APK
+      # 7. Upload debug APK (this is the one you should install for testing)
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
           path: app/build/outputs/apk/debug/*.apk
 
-      # 8. Build release
+      # 8. Build release ONLY if proguard-rules.pro is properly configured
+      # NOTE: Release APK may crash if ProGuard removes IME classes!
       - name: Build Release APK
         run: |
           if [ "${{ steps.check_wrapper.outputs.exists }}" == "true" ]; then
