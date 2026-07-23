@@ -25,9 +25,18 @@ android {
     }
 
     buildTypes {
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 
@@ -63,8 +72,6 @@ dependencies {
     // Local persistence for settings/profiles
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.savedstate:savedstate-ktx:1.2.1")
-
-    // Dependency injection (kept light-weight/manual for now; swap for Hilt if desired)
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
