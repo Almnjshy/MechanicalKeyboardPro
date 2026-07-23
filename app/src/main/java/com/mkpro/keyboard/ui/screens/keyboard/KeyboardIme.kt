@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -29,8 +30,7 @@ import com.mkpro.keyboard.ui.theme.MkTextSecondary
 /**
  * The actual keyboard panel: CommandBar on top, a horizontal strip of layer
  * tabs (English/العربية/PC Keys/...) when expanded, and the key rows below.
- * Fixed height (not fillMaxSize) - this view is hosted inside whatever app
- * the user is typing into, not the whole screen.
+ * Uses wrapContentHeight to properly size within the IME window.
  */
 @Composable
 fun KeyboardIme(
@@ -48,6 +48,7 @@ fun KeyboardIme(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .wrapContentHeight()  // CRITICAL: Don't use fixed height, let content determine size
             .background(MkBackground)
             .padding(6.dp)
     ) {
@@ -56,9 +57,9 @@ fun KeyboardIme(
             currentLayerName = activeLayerName,
             isExpanded = isAdvancedPanelExpanded,
             onToggleExpanded = onToggleAdvancedPanel,
-            onOpenSettings = { /* TODO: open companion app settings */ },
-            onOpenRgb = { /* TODO: quick RGB panel */ },
-            onOpenProfile = { /* TODO: profile switcher */ }
+            onOpenSettings = { },
+            onOpenRgb = { },
+            onOpenProfile = { }
         )
 
         if (isAdvancedPanelExpanded) {
@@ -87,10 +88,11 @@ fun KeyboardIme(
             }
         }
 
+        // Keyboard keys area - use fixed height for the key area only
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(200.dp)  // Slightly reduced from 220dp
                 .padding(top = 6.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
