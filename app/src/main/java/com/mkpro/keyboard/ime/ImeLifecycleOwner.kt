@@ -12,17 +12,10 @@ import androidx.savedstate.SavedStateRegistryOwner
 /**
  * InputMethodService is not a LifecycleOwner/ViewModelStoreOwner/
  * SavedStateRegistryOwner the way an Activity or Fragment is, so a
- * ComposeView hosted inside onCreateInputView() needs one manually. This
- * mirrors the pattern used by every Compose-based Android keyboard: drive
- * the lifecycle state from the IME's own callbacks.
- *
- * Proper lifecycle flow:
- *   onCreate() -> ON_CREATE
- *   onStartInput() -> ON_START
- *   onStartInputView() -> ON_RESUME
- *   onFinishInputView() -> ON_PAUSE
- *   onFinishInput() -> ON_STOP
- *   onDestroy() -> ON_DESTROY
+ * ComposeView hosted inside onCreateInputView() needs one manually.
+ * 
+ * CRITICAL: Lifecycle must follow proper sequence:
+ *   ON_CREATE -> ON_START -> ON_RESUME -> ON_PAUSE -> ON_STOP -> ON_DESTROY
  */
 class ImeLifecycleOwner : LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
 
@@ -39,10 +32,5 @@ class ImeLifecycleOwner : LifecycleOwner, ViewModelStoreOwner, SavedStateRegistr
 
     fun handleLifecycleEvent(event: Lifecycle.Event) {
         lifecycleRegistry.handleLifecycleEvent(event)
-    }
-
-    /** Convenience: move to a specific state ensuring proper transitions */
-    fun moveToState(state: Lifecycle.State) {
-        lifecycleRegistry.currentState = state
     }
 }
