@@ -1,6 +1,7 @@
 package com.mkpro.keyboard.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,7 +34,8 @@ fun CommandBar(
     onToggleExpanded: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenRgb: () -> Unit,
-    onOpenProfile: () -> Unit
+    onOpenProfile: () -> Unit,
+    onCycleLayer: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -51,7 +53,12 @@ fun CommandBar(
             )
         }
 
-        Text(text = currentLayerName.uppercase(), color = MkTextPrimary, style = MaterialTheme.typography.labelSmall)
+        Text(
+            text = currentLayerName.uppercase(),
+            color = MkTextPrimary,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.clickable { onCycleLayer() }
+        )
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onOpenProfile) {
