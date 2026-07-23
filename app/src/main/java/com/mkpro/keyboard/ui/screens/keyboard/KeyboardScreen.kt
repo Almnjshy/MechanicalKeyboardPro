@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -51,8 +50,7 @@ fun KeyboardScreen(
             onToggleExpanded = onToggleExpanded,
             onOpenSettings = onOpenSettings,
             onOpenRgb = onOpenRgb,
-            onOpenProfile = onOpenProfile,
-            onCycleLayer = onCycleLayer
+            onOpenProfile = onOpenProfile
         )
 
         Column(
@@ -71,7 +69,6 @@ fun KeyboardScreen(
                     rowKeys.forEach { key ->
                         KeyCap(
                             key = key,
-                            displayLabel = displayLabelFor(key),
                             onPress = onKeyPressed
                         )
                     }
@@ -85,12 +82,16 @@ fun KeyboardScreen(
 @Composable
 fun KeyboardScreen(viewModel: KeyboardViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
+    val renderState = KeyboardRenderState(
+        visibleRows = uiState.rows,
+        activeLayerName = uiState.activeLayerName,
+        isAdvancedPanelExpanded = uiState.isAdvancedPanelExpanded
+    )
     KeyboardScreen(
-        render = uiState.render,
+        render = renderState,
         isConnected = uiState.isConnected,
-        displayLabelFor = viewModel::displayLabelFor,
+        displayLabelFor = { it.label },
         onKeyPressed = viewModel::onKeyPressed,
-        onToggleExpanded = viewModel::toggleAdvancedPanel,
-        onCycleLayer = viewModel::cycleLayer
+        onToggleExpanded = viewModel::toggleAdvancedPanel
     )
 }
